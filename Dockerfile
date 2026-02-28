@@ -1,39 +1,52 @@
 # syntax = docker/dockerfile:1
+# Node + Chromium for whatsapp-web.js (Puppeteer) on Fly.io
 
-# Adjust NODE_VERSION as desired
-ARG NODE_VERSION=22.21.1
-FROM node:${NODE_VERSION}-slim AS base
+ARG NODE_VERSION=22
+FROM node:${NODE_VERSION}-bookworm-slim AS base
 
 LABEL fly_launch_runtime="Node.js"
 
-# Node.js app lives here
 WORKDIR /app
+ENV NODE_ENV=production
 
-# Set production environment
-ENV NODE_ENV="production"
+# Don't download Puppeteer's bundled Chromium; we use system Chromium
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=1
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 
+# Install Chromium and minimal deps for headless Puppeteer
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    chromium \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgbm1 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libx11-6 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxext6 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    xdg-utils \
+    && rm -rf /var/lib/apt/lists/*
 
-# Throw-away build stage to reduce size of final image
+# Build stage
 FROM base AS build
-
-# Install packages needed to build node modules
-RUN apt-get update -qq && \
-    apt-get install --no-install-recommends -y build-essential node-gyp pkg-config python-is-python3
-
-# Install node modules
+RUN apt-get update -qq && apt-get install -y --no-install-recommends build-essential node-gyp pkg-config python3
 COPY package-lock.json package.json ./
 RUN npm ci
-
-# Copy application code
 COPY . .
 
-
-# Final stage for app image
+# Final image
 FROM base
-
-# Copy built application
 COPY --from=build /app /app
 
-# Start the server by default, this can be overwritten at runtime
 EXPOSE 3000
-CMD [ "npm", "run", "start" ]
+CMD ["npm", "run", "start"]

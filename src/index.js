@@ -1,26 +1,53 @@
 require('dotenv').config();
+const http = require('http');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode-terminal');
 const { procesarMensaje } = require('../bot');
 
 // ─────────────────────────────────────────────
+// HTTP HEALTH SERVER (for Fly.io / platforms that expect a listening port)
+// ─────────────────────────────────────────────
+
+const PORT = Number(process.env.PORT) || 3000;
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ ok: true, service: 'whatsapp-asistencia-bot' }));
+    return;
+  }
+  res.writeHead(404);
+  res.end();
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`📡 Health server listening on 0.0.0.0:${PORT}`);
+});
+
+// ─────────────────────────────────────────────
 // CLIENTE WHATSAPP
 // ─────────────────────────────────────────────
 
+const puppeteerOpts = {
+  headless: true,
+  args: [
+    '--no-sandbox',
+    '--disable-setuid-sandbox',
+    '--disable-dev-shm-usage',
+    '--disable-accelerated-2d-canvas',
+    '--no-first-run',
+    '--disable-gpu',
+    '--disable-features=site-per-process',
+  ],
+};
+
+if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+  puppeteerOpts.executablePath = process.env.PUPPETEER_EXECUTABLE_PATH;
+}
+
 const client = new Client({
   authStrategy: new LocalAuth({ clientId: 'asistencia-bot' }),
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--disable-gpu',
-      '--disable-features=site-per-process',
-    ],
-  },
+  puppeteer: puppeteerOpts,
 });
 
 // Mostrar QR para escanear
