@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+
+# Environment and secrets (never commit)
+.env
+.env.local
+.env.*.local
+
+# WhatsApp session data (sensitive, machine-specific)
+.wwebjs_auth/
+.wwebjs_cache/
+
+# Fly.io
+.fly/
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build / misc
+dist/
+coverage/
+.nyc_output/
+*.tgz
