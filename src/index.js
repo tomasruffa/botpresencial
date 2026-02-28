@@ -1,7 +1,8 @@
 require('dotenv').config();
 const http = require('http');
 const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcode = require('qrcode-terminal');
+const qrcodeTerminal = require('qrcode-terminal');
+const qrcode = require('qrcode');
 const { procesarMensaje } = require('../bot');
 
 // ─────────────────────────────────────────────
@@ -10,12 +11,44 @@ const { procesarMensaje } = require('../bot');
 
 const PORT = Number(process.env.PORT) || 3000;
 
-const server = http.createServer((req, res) => {
+// Último QR generado (data URL) para servir en /qr cuando corre en servidor
+let lastQRDataUrl = null;
+
+const server = http.createServer(async (req, res) => {
   if (req.url === '/' || req.url === '/health') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ ok: true, service: 'whatsapp-asistencia-bot' }));
     return;
   }
+
+  if (req.url === '/qr' || req.url === '/qr/') {
+    if (!lastQRDataUrl) {
+      res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+      res.end(`
+        <!DOCTYPE html>
+        <html><head><meta charset="utf-8"><title>QR WhatsApp</title></head>
+        <body style="font-family:sans-serif;text-align:center;padding:2rem;">
+          <h1>📱 Conectar WhatsApp</h1>
+          <p>Esperando código QR… Recargá esta página en unos segundos.</p>
+          <p><small>En el servidor: el bot debe estar iniciado y esperando escaneo.</small></p>
+        </body></html>
+      `);
+      return;
+    }
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(`
+      <!DOCTYPE html>
+      <html><head><meta charset="utf-8"><title>QR WhatsApp</title></head>
+      <body style="font-family:sans-serif;text-align:center;padding:2rem;">
+        <h1>📱 Conectar WhatsApp</h1>
+        <p>Escaneá este código con <strong>WhatsApp → Dispositivos vinculados → Vincular dispositivo</strong>.</p>
+        <p><img src="${lastQRDataUrl}" alt="QR" style="max-width:320px;" /></p>
+        <p><small>Si el QR expiró, recargá la página.</small></p>
+      </body></html>
+    `);
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });
@@ -50,10 +83,15 @@ const client = new Client({
   puppeteer: puppeteerOpts,
 });
 
-// Mostrar QR para escanear
-client.on('qr', (qr) => {
+// Mostrar QR para escanear (terminal + guardar para /qr en servidor)
+client.on('qr', async (qr) => {
   console.log('\n📱 Escaneá este QR con WhatsApp > Dispositivos vinculados:\n');
-  qrcode.generate(qr, { small: true });
+  qrcodeTerminal.generate(qr, { small: true });
+  try {
+    lastQRDataUrl = await qrcode.toDataURL(qr);
+  } catch (e) {
+    console.error('Error generando QR para web:', e);
+  }
 });
 
 client.on('authenticated', () => {
