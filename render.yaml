@@ -1,0 +1,23 @@
+# Render Blueprint — deploy from GitHub (free tier)
+# https://render.com/docs/blueprint-spec
+#
+# After connecting the repo, set env vars in Dashboard: SUPABASE_URL, SUPABASE_ANON_KEY
+
+services:
+  - type: web
+    name: botpresencial
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: PUPPETEER_EXECUTABLE_PATH
+        value: /usr/bin/chromium
+      - key: PUPPETEER_SKIP_CHROMIUM_DOWNLOAD
+        value: "1"

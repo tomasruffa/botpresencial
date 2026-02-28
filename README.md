@@ -136,6 +136,48 @@ sudo apt-get install -y chromium-browser libgbm-dev
 
 ---
 
+## 🚀 Deploy gratis (Render, sin dormir) + GitHub
+
+Podés hostear el bot **gratis** en [Render](https://render.com) con deploy desde GitHub. El plan free duerme tras ~15 min sin tráfico; con un **ping cada 5 minutos** (gratis con UptimeRobot) la app **no llega a dormirse** y el bot queda siempre conectado.
+
+### 1. Subir el repo a GitHub
+
+Si todavía no está: creá un repo en GitHub y subí el código (sin `.env` ni `.wwebjs_auth/`).
+
+### 2. Deploy en Render
+
+1. Entrá a [render.com](https://render.com) y registrate (con GitHub).
+2. **New → Web Service**.
+3. Conectá el repo de GitHub y elegí este proyecto.
+4. Render detecta el `Dockerfile` y el `render.yaml` (Blueprint).
+5. En **Environment** agregá las variables (no las subas al repo):
+   - `SUPABASE_URL` = tu URL de Supabase  
+   - `SUPABASE_ANON_KEY` = tu anon key  
+6. Creá el servicio. La primera build puede tardar unos minutos (Chromium en el Docker).
+
+Cuando termine, vas a tener una URL tipo `https://botpresencial.onrender.com`.
+
+### 3. Mantenerlo despierto (gratis)
+
+1. Entrá a [uptimerobot.com](https://uptimerobot.com) y creá una cuenta gratis.
+2. **Add New Monitor**:
+   - **Monitor Type**: HTTP(s)
+   - **URL**: `https://tu-app.onrender.com/health` (tu URL de Render)
+   - **Monitoring Interval**: 5 minutes
+3. Guardá. UptimeRobot va a hacer GET a `/health` cada 5 minutos, así Render no considera la app inactiva y **no la duerme**.
+
+### 4. Ver el QR para vincular WhatsApp
+
+Cuando el bot esté esperando escaneo, entrá en el navegador a:
+
+`https://tu-app.onrender.com/qr`
+
+Escaneá con WhatsApp → Dispositivos vinculados → Vincular dispositivo.
+
+> **Nota:** En el plan free de Render el disco es efímero: si el servicio se reinicia, puede que tengas que escanear el QR de nuevo. Para evitar eso podés usar un volumen (Render lo ofrece en planes de pago) o dejar el bot corriendo en una máquina estable.
+
+---
+
 ## 📌 Notas
 
 - Las sesiones se guardan **en memoria**, se resetean al reiniciar el bot
